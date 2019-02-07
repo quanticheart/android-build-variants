@@ -1,0 +1,88 @@
+apply plugin: 'com.android.application'
+
+android {
+    signingConfigs {
+
+        relese {
+            keyAlias 'teste'
+            keyPassword 'testeteste'
+            storeFile file('../key/keytest.jks')
+            storePassword 'testeteste'
+        }
+
+        debug {
+            keyAlias 'teste'
+            keyPassword 'testeteste'
+            storeFile file('../key/debug.jks')
+            storePassword 'testeteste'
+        }
+
+    }
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "quanticheart.com.buildvariants"
+        minSdkVersion 23
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.relese
+
+            manifestPlaceholders = [
+                    appIcon: "@mipmap/ic_launcher",
+                    appName: "@string/app_name"
+            ]
+
+            buildConfigField 'String', 'BuildMsg', '"App"'
+            buildConfigField "boolean", "isDebug", "false"
+
+        }
+
+        debug {
+            signingConfig signingConfigs.debug
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-Debug'
+
+            manifestPlaceholders = [
+                    appIcon: "@mipmap/ic_launcher_debug",
+                    appName: "@string/app_name_debug"
+            ]
+
+            buildConfigField 'String', 'BuildMsg', '"App Debug"'
+            buildConfigField "boolean", "isDebug", "true"
+
+        }
+
+        applicationVariants.all { variant ->
+            variant.outputs.all {
+                if (variant.buildType.name == "debug") {
+                    outputFileName = "DESDebug-${variant.versionName}.apk"
+                } else {
+                    outputFileName = "${variant.flavorName}-${variant.versionName}.apk"
+                    outputFileName = "../../" + outputFileName
+                }
+            }
+        }
+    }
+}
+
+
+ext {
+    appCompatVersion = '28.0.0'
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "com.android.support:appcompat-v7:$appCompatVersion"
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+}
