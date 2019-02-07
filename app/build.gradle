@@ -1,6 +1,33 @@
 apply plugin: 'com.android.application'
 
 android {
+
+    def versionPropsFile = file('version.properties')
+    def versionBuild
+
+    /*Setting default value for versionBuild which is the last incremented value stored in the file */
+    if (versionPropsFile.canRead()) {
+        Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionPropsFile))
+        versionBuild = versionProps['VERSION_BUILD'].toInteger()
+    } else {
+        throw new FileNotFoundException("Could not read version.properties!")
+    }
+
+
+    /*Wrapping inside a method avoids auto incrementing on every gradle task run. Now it runs only when we build apk*/
+    ext.autoIncrementBuildNumber = {
+        if (versionPropsFile.canRead()) {
+            Properties versionProps = new Properties()
+            versionProps.load(new FileInputStream(versionPropsFile))
+            versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
+            versionProps['VERSION_BUILD'] = versionBuild.toString()
+            versionProps.store(versionPropsFile.newWriter(), null)
+        } else {
+            throw new FileNotFoundException("Could not read version.properties!")
+        }
+    }
+
     signingConfigs {
 
         relese {
@@ -24,7 +51,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0." + versionBuild
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
     }
@@ -61,18 +88,35 @@ android {
         }
 
         applicationVariants.all { variant ->
+            def appName
+            //Check if an applicationName property is supplied; if not use the name of the parent project.
+            if (project.hasProperty("applicationName")) {
+                appName = applicationName
+            } else {
+                appName = parent.name
+            }
+
             variant.outputs.all {
                 if (variant.buildType.name == "debug") {
-                    outputFileName = "DESDebug-${variant.versionName}.apk"
+                    outputFileName = "${appName}-${variant.versionName}-test.apk"
                 } else {
-                    outputFileName = "${variant.flavorName}-${variant.versionName}.apk"
+                    outputFileName = "${appName}-${variant.versionName}.apk"
                     outputFileName = "../../" + outputFileName
                 }
             }
         }
     }
-}
 
+    // Hook to check if the release/debug task is among the tasks to be executed.
+    //Let's make use of it
+    gradle.taskGraph.whenReady {taskGraph ->
+        if (taskGraph.hasTask(assembleDebug)) {  /* when run debug task */
+            autoIncrementBuildNumber()
+        } else if (taskGraph.hasTask(assembleRelease)) { /* when run release task */
+            autoIncrementBuildNumber()
+        }
+    }
+}
 
 ext {
     appCompatVersion = '28.0.0'
