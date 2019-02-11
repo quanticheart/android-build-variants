@@ -5,7 +5,7 @@ android {
     def versionPropsFile = file('version.properties')
     def versionBuild
 
-    /*Setting default value for versionBuild which is the last incremented value stored in the file */
+    /*Carrega o arquivo version.properties e coloca a variavel VERSION_BUILD em def versionBuild*/
     if (versionPropsFile.canRead()) {
         Properties versionProps = new Properties()
         versionProps.load(new FileInputStream(versionPropsFile))
@@ -13,7 +13,6 @@ android {
     } else {
         throw new FileNotFoundException("Could not read version.properties!")
     }
-
 
     /*Wrapping inside a method avoids auto incrementing on every gradle task run. Now it runs only when we build apk*/
     ext.autoIncrementBuildNumber = {
@@ -51,24 +50,30 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0.0." + versionBuild
+        versionName "1.0.0-" + versionBuild
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
     }
-    buildTypes {
 
+    buildTypes {
+        def filesAuthorityValueBase = "quanticheart.com.buildvariants.files"
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.relese
 
+            def filesAuthority = filesAuthorityValueBase + ".fileprovider"
+
             manifestPlaceholders = [
-                    appIcon: "@mipmap/ic_launcher",
-                    appName: "@string/app_name"
+                    appIcon       : "@mipmap/ic_launcher",
+                    appName       : "@string/app_name",
+                    filesAuthority: filesAuthority
             ]
 
             buildConfigField 'String', 'BuildMsg', '"App"'
             buildConfigField "boolean", "isDebug", "false"
+            buildConfigField("String", "FILES_AUTHORITY", "\"${filesAuthority}\"")
+
+            resValue "string", "FILES_AUTHORITY", filesAuthority
 
         }
 
@@ -77,13 +82,19 @@ android {
             applicationIdSuffix '.debug'
             versionNameSuffix '-Debug'
 
+            def filesAuthority = filesAuthorityValueBase + ".debug.fileprovider"
+
             manifestPlaceholders = [
-                    appIcon: "@mipmap/ic_launcher_debug",
-                    appName: "@string/app_name_debug"
+                    appIcon       : "@mipmap/ic_launcher_debug",
+                    appName       : "@string/app_name_debug",
+                    filesAuthority: filesAuthority
             ]
 
             buildConfigField 'String', 'BuildMsg', '"App Debug"'
             buildConfigField "boolean", "isDebug", "true"
+            buildConfigField("String", "FILES_AUTHORITY", "\"${filesAuthority}\"")
+
+            resValue "string", "FILES_AUTHORITY", filesAuthority
 
         }
 
@@ -109,7 +120,7 @@ android {
 
     // Hook to check if the release/debug task is among the tasks to be executed.
     //Let's make use of it
-    gradle.taskGraph.whenReady {taskGraph ->
+    gradle.taskGraph.whenReady { taskGraph ->
         if (taskGraph.hasTask(assembleDebug)) {  /* when run debug task */
             autoIncrementBuildNumber()
         } else if (taskGraph.hasTask(assembleRelease)) { /* when run release task */
